@@ -32,22 +32,37 @@ test_knife() {
 
 }
 
-test_pgp() {
+test_gpg() {
 
-    echo -n "PGP installed check: "
-    pgp_return=$( which pgp > /dev/null 2>&1 ; echo $? )
-    if [ "$pgp_return" = "0" ] ;then
+    echo -n "GPG installed check: "
+    gpg_return=$( which gpg > /dev/null 2>&1 ; echo $? )
+    if [ "$gpg_return" = "0" ] ;then
         test_pass
     else
-        errmsg="This script requires pgp to be installed"
+        errmsg="This script requires gpg to be installed"
         test_fail
     fi
 }
 
+test_gpg_dir() {
+
+    echo -n "GPG directory check: "
+    mkdir ~/.gnupg/ > /dev/null 2>&1
+    gpg_return=$( touch ~/.gnupg/testfile > /dev/null 2>&1 ; echo $? )
+    if [ "$gpg_return" = "0" ] ;then
+        test_pass
+    else
+        errmsg="If ~/.gnupg/ is not writeable, gpg complains"
+        test_fail
+    fi
+}
+
+
 dump_bags() {
 
     # handle directories
-    echo "Dumping data bags to files"
+    echo 
+    echo "## Dumping data bags to files ##"
     rundir=$(pwd)
     timestamp=$(date +%F_%_H-%M-%S)
     dumpdir="databag-backup-$timestamp"
@@ -70,7 +85,8 @@ dump_bags() {
 
 tar_bags() {
 
-    echo "Archiving bags"
+    echo 
+    echo "## Archiving bags ##"
     tarfile="${dumpdir}.tar"
     gzfile="${tarfile}.gz"
     cd $rundir
@@ -80,16 +96,33 @@ tar_bags() {
 
 }
 
+encrypt_bags() {
+
+    echo 
+    echo "## Encrypting archive ##" ;echo
+    cd $rundir
+    echo "Here are some strong passwords if you need one:"
+    pwgen -sy 40 -n 10
+    gpg --armor --symmetric --cipher-algo AES256 $gzfile
+    rm -f $gzfile
+    echo
+    echo "Done. Encrypted file is ${gzfile}.asc (ascii armored, AES256)."
+    echo
+
+}
+
 #main
 
 #we require a valid knife user
 test_knife
 #we require pgp to be installed
-test_pgp
+test_gpg
+test_gpg_dir
 
 # do the needful
 dump_bags
 tar_bags
+encrypt_bags
 
 
 
