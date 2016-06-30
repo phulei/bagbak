@@ -47,9 +47,11 @@ test_pgp() {
 dump_bags() {
 
     # handle directories
+    echo "Dumping data bags to files"
     rundir=$(pwd)
-    timestamp=$(date --rfc-3339=seconds | sed 's/\ /_/g')
-    dir="$rundir/$timestamp" 
+    timestamp=$(date +%F_%_H-%M-%S)
+    dumpdir="databag-backup-$timestamp"
+    dir="$rundir/$dumpdir" 
     mkdir -p $dir
     cd $dir
 
@@ -58,10 +60,23 @@ dump_bags() {
         mkdir $dir/$bag
         cd $dir/$bag
         for subbag in $(knife data bag show $bag) ;do
-            knife data bag show $bag $subbag -F j > ${subbag}.json
+            knife data bag show $bag $subbag -F j > ${subbag}.json 2>/dev/null
+            echo -n "."
         done
     done
-    cd $dir
+    echo
+
+}
+
+tar_bags() {
+
+    echo "Archiving bags"
+    tarfile="${dumpdir}.tar"
+    gzfile="${tarfile}.gz"
+    cd $rundir
+    tar -cf $tarfile $dumpdir
+    gzip -9 $tarfile
+    rm -rf $dumpdir
 
 }
 
@@ -74,7 +89,7 @@ test_pgp
 
 # do the needful
 dump_bags
-
+tar_bags
 
 
 
